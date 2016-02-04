@@ -13,6 +13,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -84,19 +85,19 @@ public class BrowserView {
         enableButtons();
         // create scene to hold UI
         myScene = new Scene(root, DEFAULT_SIZE.width, DEFAULT_SIZE.height);
-        //myScene.getStylesheets().add(DEFAULT_RESOURCE_PACKAGE + STYLESHEET);
+        myScene.getStylesheets().add(DEFAULT_RESOURCE_PACKAGE + STYLESHEET);
     }
 
     /**
      * Display given URL.
      */
     public void showPage (String url) {
-        URL valid = myModel.go(url);
-        if (valid != null) {
+        try{
+            URL valid = myModel.go(url);
             update(valid);
         }
-        else {
-            showError("Could not load " + url);
+        catch (BrowserException e) {
+            showError(e.getMessage());
         }
     }
 
@@ -126,12 +127,20 @@ public class BrowserView {
 
     // move to the next URL in the history
     private void next () {
-        update(myModel.next());
+        try{
+            update(myModel.next());
+        } catch(BrowserException e){
+            showError(e.getMessage());
+        }
     }
 
     // move to the previous URL in the history
     private void back () {
-        update(myModel.back());
+        try{
+            update(myModel.back());
+        }catch(BrowserException e){
+            showError(e.getMessage());
+        }
     }
 
     // change current URL to the home page, if set
@@ -141,9 +150,13 @@ public class BrowserView {
 
     // change page to favorite choice
     private void showFavorite (String favorite) {
-        showPage(myModel.getFavorite(favorite).toString());
+        try{
+            showPage(myModel.getFavorite(favorite).toString());
+        } catch(BrowserException e){
+            showError(e.getMessage());
+        }
         // reset favorites ComboBox so the same choice can be made again
-        myFavorites.setValue(null);
+        //myFavorites.setValue(null);
     }
 
     // update just the view to display given URL
@@ -226,13 +239,44 @@ public class BrowserView {
         HBox result = new HBox();
         myFavorites = new ComboBox<String>();
         // ADD REST OF CODE HERE
+        myFavorites.setOnAction(e -> {
+            //Maybe do try except
+            if(myFavorites.getValue()!=null){ 
+                System.out.println(myFavorites.getValue());
+                showFavorite(myFavorites.getValue());
+            }
+        });
+        result.getChildren().add(myFavorites);
+        
+        result.getChildren().add(makeButton("FavoritePromptTitle", event -> {
+            addFavorite();
+        }));
+        
         result.getChildren().add(makeButton("SetHomeCommand", event -> {
             myModel.setHome();
             enableButtons();
         }));
+        
         return result;
     }
+    
+    //NOTE: Implemented this before realizing it was already here
+    /*
+    private void showTextInputDialog() {
+        TextInputDialog myTextDialog = new TextInputDialog("Enter Name for Favorite:");
+        Optional<String> result = myTextDialog.showAndWait();
+        if(result.isPresent()){
+            addFavorite(result.get());
+        }
+        enableButtons();
 
+    }
+
+    private void addFavorite(String s){
+        System.out.println(s);
+    }
+    */
+    
     // makes a button using either an image or a label
     private Button makeButton (String property, EventHandler<ActionEvent> handler) {
         // represent all supported image suffixes
